@@ -4,10 +4,11 @@ import bcryptjs from "bcryptjs";
 
 export const sendMail = async ({ email, emailType, userId }: any) => {
   try {
-    const hashedToken = await bcryptjs.hash(userId.toString(), 10);
     let htmlContent = "";
 
     if (emailType === "VERIFY") {
+      const hashedToken = await bcryptjs.hash(userId.toString(), 10);
+
       await Users.findByIdAndUpdate(userId, {
         verifyToken: hashedToken,
         verifyTokenExpiry: Date.now() + 3600000, // 1 hour
@@ -20,6 +21,8 @@ export const sendMail = async ({ email, emailType, userId }: any) => {
         <p>This link will expire in 1 hour.</p>
       `;
     } else if (emailType === "RESET") {
+      const hashedToken = await bcryptjs.hash(userId.toString(), 10);
+
       await Users.findByIdAndUpdate(userId, {
         forgotPasswordToken: hashedToken,
         forgotPasswordTokenExpiry: Date.now() + 3600000, // 1 hour
@@ -30,6 +33,13 @@ export const sendMail = async ({ email, emailType, userId }: any) => {
         <p>We received a request to reset your password. Please click the link below to set a new password:</p>
         <a href="${process.env.DOMAIN}/resetpassword?token=${hashedToken}&id=${userId}">Reset Password</a>
         <p>This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>
+      `;
+    } else if (emailType === "SUCCESS") {
+      htmlContent = `
+        <h1>Account Verified Successfully</h1>
+        <p>Your account has been successfully verified. You can now log in and start using our services.</p>
+        <a href="${process.env.DOMAIN}/login">Login to your account</a>
+        <p>If you did not perform this action, please contact our support team immediately.</p>
       `;
     }
 
@@ -43,9 +53,14 @@ export const sendMail = async ({ email, emailType, userId }: any) => {
     });
 
     const mailOptions = {
-      from: "karkiarpan555@gmail.com",
+      from: "arpan@google.com",
       to: email,
-      subject: emailType === "VERIFY" ? "Email Verification" : "Password Reset",
+      subject:
+        emailType === "VERIFY"
+          ? "Email Verification"
+          : emailType === "RESET"
+          ? "Password Reset"
+          : "Account Verified",
       html: htmlContent,
     };
 
